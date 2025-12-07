@@ -36,17 +36,15 @@ public class ReservationController {
     @Autowired
     private ReservationItemRepository reservationItemRepository; // 注入明細的倉管
 
-    @GetMapping("/{id}/checkout-info")
+@GetMapping("/{id}/checkout-info")
     public ResponseEntity<?> getCheckoutInfo(@PathVariable Long id) {
         
         // 找預約單
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("找不到預約單 ID: " + id));
 
-        // DTO
         ReservationCheckoutDto dto = new ReservationCheckoutDto();
         dto.setReservationId(reservation.getId());
-        dto.setTotalAmount(reservation.getTotalAmount());
 
         // 補上使用者資訊
         if (reservation.getUserId() != null) {
@@ -59,33 +57,47 @@ public class ReservationController {
             dto.setUserEmail("無");
         }
 
-        // 補上明細 
-        // 改用 Repository 去撈，而不是從 reservation 拿
+        // 撈明細並準備計算
         List<ReservationItem> items = reservationItemRepository.findByReservationsId(id);
         
+        // 準備一個變數來累加，初始為 0
+        java.math.BigDecimal calculatedTotal = java.math.BigDecimal.ZERO;
+
         if (items != null) {
-            items.forEach(item -> {
-                // 動態查詢
+            for (ReservationItem item : items) {
+                // 查票名邏輯 
                 String ticketName = "未知票種";
-                
-                // 先用 ID 查出 EventTicketType (活動票種設定)
                 EventTicketType ett = eventTicketTypeRepository.findById(item.getEventTicketTypeId()).orElse(null);
-                
                 if (ett != null) {
-                    // 再拿裡面的 ticketTemplateId 去查 TicketType (票種名稱)
                     TicketType tt = ticketTypeRepository.findById(ett.getTicketTemplateId()).orElse(null);
                     if (tt != null) {
-                        ticketName = tt.getName(); // 拿到 "一般票" 或 "兒童票"
+                        ticketName = tt.getName();
                     }
                 }
-                // ----------------------------------------
+                // .....................................
+
+                // 拿到單價跟數量，並累加總金額
+                java.math.BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : java.math.BigDecimal.ZERO;
+                java.math.BigDecimal quantity = new java.math.BigDecimal(item.getQuantity());
+                
+                // 累加：總數 = 總數 + (單價 * 數量)
+                calculatedTotal = calculatedTotal.add(unitPrice.multiply(quantity));
 
                 dto.getItems().add(new ReservationCheckoutDto.ItemDto(
                     ticketName,
-                    item.getUnitPrice() != null ? item.getUnitPrice() : java.math.BigDecimal.ZERO, 
+                    unitPrice, 
                     item.getQuantity()
                 ));
-            });
+            }
+        }
+        
+        // 雙保險邏輯：優先用資料庫的，沒值才用算的
+        if (reservation.getTotalAmount() != null) {
+            // 如果資料庫有值，尊重前一手的資料
+            dto.setTotalAmount(reservation.getTotalAmount());
+        } else {
+            // 如果資料庫是 null，我自己算
+            dto.setTotalAmount(calculatedTotal);
         }
 
         return ResponseEntity.ok(dto);
