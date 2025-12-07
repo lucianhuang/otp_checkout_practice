@@ -1,9 +1,12 @@
 package com.example.openticket.entity;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.*;
 import lombok.Data;
+import java.math.BigDecimal;
 
-// 預約明細 - 扣庫存要用
+// 預約明細，扣庫存要用
 
 @Entity
 @Data
@@ -21,4 +24,7 @@ public class ReservationItem {
 
     @Column(name = "quantity")
     private Integer quantity;
+
+    @Column(name = "unit_price")
+    private BigDecimal unitPrice;
 }
