@@ -36,7 +36,7 @@ public class ReservationController {
     @Autowired
     private ReservationItemRepository reservationItemRepository; // 注入明細的倉管
 
-@GetMapping("/{id}/checkout-info")
+@GetMapping("/{id}/checkout")
     public ResponseEntity<?> getCheckoutInfo(@PathVariable Long id) {
         
         // 找預約單
