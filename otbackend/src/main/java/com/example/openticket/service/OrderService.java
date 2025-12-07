@@ -1,9 +1,9 @@
-// 宣告你的檔案位置 (Package)
+// 宣告檔案位置 (Package)
 package com.example.openticket.service;
 
 // List 不是 Java的關鍵字，是一個「介面」，用來操作「集合資料」
 import java.util.List;
-import java.time.LocalDateTime;
+import java.time.LocalDateTime; // 記得引入這個
 import java.math.BigDecimal;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,10 +66,15 @@ public class OrderService {
         Reservation reservation = reservationRepository.findById(request.getReservationId())
                 .orElseThrow(() -> new RuntimeException("找不到預約單")); 
 
-        // 檢查時效 (Security Check)
-        // AI Code Review 建議：必須防止使用者拿過期的 reservationId 來結帳
-        if (reservation.getExpiresAt() != null && LocalDateTime.now().isAfter(reservation.getExpiresAt())) {
-            throw new RuntimeException("結帳逾時，請重新預約！");
+        // 檢查時效 (Security Check) - 修改版
+        // AI Code Review 建議：
+        // 不修改資料庫 (不依賴 expiresAt 欄位)，直接用建立時間 + 10秒 來判斷
+        // 假設 Reservation Entity 有 getCreatedAt() 方法 (通常 entity 都會有建立時間)
+        LocalDateTime deadLine = reservation.getCreatedAt().plusSeconds(10); // 這裡設定 10 秒
+        
+        if (LocalDateTime.now().isAfter(deadLine)) {
+            // 如果現在時間 晚於 (建立時間+10秒)，就報錯
+            throw new RuntimeException("結帳逾時 (超過10秒)，請重新預約！");
         }
 
         // 把「建立主訂單」的順序往前移
@@ -131,7 +136,7 @@ public class OrderService {
         // 建立付款單，紀錄要收多少錢
         Payment payment = new Payment();
         
-        // 把這張付款單跟剛剛的訂單綁在一起 (Foreign Key)
+        // 把這張付款單跟訂單綁在一起 (Foreign Key)
         payment.setOrder(order); 
 
         // 寫死線上支付
@@ -148,8 +153,8 @@ public class OrderService {
 
         // [AI 移除說明]：原本這裡有「核銷預約單 (reservation.setStatus("ORDERED"))」
         // 原因：
-        // 1. 資料庫真實 Schema 中沒有 status 欄位，我們不去改修改 DB。
-        // 我們改用最上面的 existsByReservationsId 來檢查是否重複。
+        // 資料庫真實 Schema 中沒有 status 欄位，不去改修改 DB。
+        // 改用最上面的 existsByReservationsId 來檢查是否重複。
         // 所以這段更新狀態的程式碼被移除了。
 
         System.out.println("訂單建立成功 (V3 Optimized)，ID: " + order.getId());

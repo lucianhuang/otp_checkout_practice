@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'; // 引入 useEffect
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+// 引入 Toast 套件
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CheckoutPage = () => {
   // 從網址抓取預約單號 (例如 /checkout/10)
@@ -22,16 +25,20 @@ const CheckoutPage = () => {
     const fetchReservation = async () => {
       try {
         // 呼叫查詢 API (GET)
-        const res = await fetch(`http://localhost:8080/api/reservations/${reservationId}/checkout-info`);
+        const res = await fetch(`http://localhost:8080/api/reservations/${reservationId}/checkout`);
+        // 注意：這裡我幫你把網址改成 /checkout 了，對應你 Controller 的 @GetMapping("/{id}/checkout")
+        
         if (res.ok) {
           const data = await res.json();
           console.log("從後端抓到的資料:", data);
           setOrderData(data);
         } else {
           console.error("找不到訂單");
+          toast.error("找不到訂單資料");
         }
       } catch (err) {
         console.error("連線失敗", err);
+        toast.error("連線失敗，請檢查後端");
       } finally {
         setLoading(false);
       }
@@ -43,7 +50,7 @@ const CheckoutPage = () => {
   const handleCheckout = async () => {
     // 防呆：如果是公司發票，統編必填
     if (invoiceType === 'COMPANY' && taxId.length !== 8) {
-      alert('請輸入正確的 8 碼統一編號');
+      toast.warning('請輸入正確的 8 碼統一編號');
       return;
     }
 
@@ -66,15 +73,23 @@ const CheckoutPage = () => {
 
       if (response.ok) {
         // 200，則跳轉成功頁
-        navigate('/success');
+        toast.success("結帳成功！跳轉中...");
+        setTimeout(() => {
+          navigate('/success');
+        }, 1500);
       } else {
         // 500，則跳轉失敗頁
-        console.error('結帳失敗');
-        navigate('/error');
+        // 嘗試讀取後端傳回來的錯誤文字 (我們在 Java 寫的 throw Exception 訊息)
+        const errorMsg = await response.text(); 
+        const showMsg = (errorMsg && errorMsg.length < 100) ? errorMsg : '結帳失敗，請稍後再試';
+
+        console.error('結帳失敗:', showMsg);
+        toast.error(showMsg);
+        // navigate('/error'); // 建議不要跳頁，讓使用者看到錯誤訊息比較好
       }
     } catch (error) {
       console.error('網路連線錯誤:', error);
-      alert('無法連接伺服器，請確認後端有開 (Port 8080)');
+      toast.error('無法連接伺服器，請確認後端有開 (Port 8080)');
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +125,7 @@ const CheckoutPage = () => {
                 {/* 改成渲染 orderData (後端資料) --- */}
                 {orderData.items && orderData.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-5 text-base text-gray-700 py-4 border-b border-gray-100 items-center">
-                    {/* 1. 商品名稱，若後端沒傳活動名，暫時寫死，但現在有API可以使用) */}
+                    {/* 1. 商品名稱 */}
                     <div className="font-medium text-left truncate pr-2">
                       活動
                     </div>
@@ -233,6 +248,8 @@ const CheckoutPage = () => {
 
       {/* 頁尾 */}
       <Footer />
+      {/* Toast 容器 */}
+      <ToastContainer position="top-center" autoClose={3000} />
     </div>
   );
 };

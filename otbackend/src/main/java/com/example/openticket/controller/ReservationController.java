@@ -6,9 +6,10 @@ import com.example.openticket.entity.TicketType;
 
 import com.example.openticket.dto.ReservationCheckoutDto;
 import com.example.openticket.entity.Reservation;
-import com.example.openticket.entity.ReservationItem; // 記得引入這個
+import com.example.openticket.entity.ReservationItem; 
 import com.example.openticket.repository.EventTicketTypeRepository;
-import com.example.openticket.repository.ReservationItemRepository; // 記得引入 Repository
+import com.example.openticket.repository.ReservationItemRepository; 
+
 import com.example.openticket.repository.ReservationRepository;
 import com.example.openticket.repository.TicketTypeRepository;
 import com.example.openticket.repository.UserRepository;
