@@ -1,31 +1,38 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+// import Header from './components/Header'; 
+// import Footer from './components/Footer'; 
+
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // 引入頁面
-import CheckoutPage from './pages/CheckoutPage';
-import SuccessPage from './pages/SuccessPage';
-import ErrorPage from './pages/ErrorPage';
+import CheckoutPage from './pages/CheckoutPage'; 
+import SuccessPage from './pages/SuccessPage'; 
 
 function App() {
   return (
-    <BrowserRouter>
+    <div className="app-container">
+      <ToastContainer 
+        position="top-center" 
+        autoClose={3000} 
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+
       <Routes>
-        {/* 預設首頁 */}
-        <Route path="/" element={
-          <div className="p-10 text-center">
-            <h1 className="text-2xl font-bold mb-4">前端測試入口</h1>
-            <a href="/checkout/10" className="text-blue-500 underline text-xl">
-               點我前往測試結帳頁 (ID=10)
-            </a>
-          </div>
-        } />
-
-        {/* 三個頁面 */}
+        {/* <Route path="/" element={<HomePage />} /> */}
         <Route path="/checkout/:reservationId" element={<CheckoutPage />} />
+        
+        {/* 當網址是 /success 時，請顯示 SuccessPage 畫面 */}
         <Route path="/success" element={<SuccessPage />} />
-        <Route path="/error" element={<ErrorPage />} />
-
       </Routes>
-    </BrowserRouter>
+      
+    </div>
   );
 }
 

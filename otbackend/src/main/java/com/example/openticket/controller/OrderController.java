@@ -1,34 +1,38 @@
 package com.example.openticket.controller;
 
 import com.example.openticket.dto.CheckoutRequest;
+import com.example.openticket.service.NewebPayService;
 import com.example.openticket.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-@RestController // 告訴 Spring：這是接受 HTTP 請求的路徑
-@RequestMapping("/api/orders") // 路徑
+@RestController
+@RequestMapping("/api/orders")
 public class OrderController {
 
     @Autowired
-    // 注入 注入了 OrderService 這個類別的物件 (Object)，
-    // 並把它取名為 orderService。
-    private OrderService orderService; 
-    
-    // 前端按下「結帳」按鈕時，會打這個 API
+    private OrderService orderService;
+
+    @Autowired
+    private NewebPayService newebPayService;
+
     @PostMapping("/checkout")
     public String checkout(@RequestBody CheckoutRequest request) {
-        // 把單子交給主廚，並拿到訂單編號
-
-        // 呼叫 Service 層的方法，
-        // 開始執行那些複雜的邏輯（扣庫存、算錢、存資料庫）。
-
-        // Gemini 的比喻：
-        // 服務生 (controller) 拿著客人寫好的菜單 (request)，
-        // 轉頭大喊：「主廚 (orderService)！請按照這張單子做菜 (createOrder)！」
-        
+        // 建立訂單 (此時資料庫狀態應該是 PENDING)
         Long orderId = orderService.createOrder(request);
 
-        // 主廚把這個號碼回傳 (Return) 給服務生。
-        return "結帳成功！訂單 ID: " + orderId;
+        // 取得金額
+        Integer amount = orderService.getOrderAmount(orderId);
+        
+        // 可以在這裡呼叫 service 直接把 orderId 的狀態改成 PAID
+        // 藍新的幕後處理，不能用8080的API呼叫，但我們先完成開發
+
+        orderService.updateStatusToPaid(orderId); 
+
+        System.out.println("準備前往藍新金流，訂單ID: " + orderId + ", 金額: " + amount);
+
+        // 產生藍新表單 HTML
+        // 這會回傳一個自動 submit 的 HTML，前端 React 接收到後要把它顯示出來
+        return newebPayService.genCheckOutForm(request, amount, orderId);
     }
 }
